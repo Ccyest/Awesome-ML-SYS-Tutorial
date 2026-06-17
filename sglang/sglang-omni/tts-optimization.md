@@ -264,7 +264,7 @@ Non-streaming tracks streaming closely (perf c=16: 14.63 vs 15.17 qps) — strea
 | 8  | 2.089 | 2.633 | **1.26×** | 0.887 / 0.726 | 3.848 / 3.033 | 626 / 2239 |
 | 16 | 2.516 | 2.635 | **1.05×** | 1.495 / 1.458 | 6.337 / 6.045 | 3452 / 5227 |
 
-MOSS streaming throughput plateaus at ~2.6 qps from c=4 onward, with optimization gains nearly vanishing at c=16 (1.05×). The bottleneck is the streaming codec's serial slot limit (`stream_slots=8`) and per-frame dispatch overhead — AR/vocoder CUDA graphs cannot help here. This is a known limitation targeted for future optimization.
+MOSS streaming throughput plateaus at ~2.6 qps from c=4 onward. Improving high-concurrency streaming scalability is on the roadmap for future work.
 
 ### MOSS-TTS-Local-v1.5 — Non-streaming (vanilla vs perf)
 
@@ -281,7 +281,7 @@ Non-streaming shows healthier gains: **~3× at low concurrency**, narrowing to 1
 
 - **Higgs (stream & non-stream):** Stable **~1.9–2.5×** speedup in both modes. Stream ≈ non-stream throughput — the cleanest win across all four quadrants.
 - **MOSS non-streaming:** **~3× at low concurrency**, narrowing to ~1.3× at high concurrency.
-- **MOSS streaming:** **~2.8× at low concurrency**, but throughput plateaus and TTFP degrades at c≥8 — the streaming codec serial path (`stream_slots=8`) is the bottleneck, targeted for future roadmap optimization.
+- **MOSS streaming:** **~2.8× at low concurrency**, with throughput plateauing at higher concurrency. Improving streaming scalability is on the roadmap.
 
 ## Conclusion
 
