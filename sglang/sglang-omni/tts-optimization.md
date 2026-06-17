@@ -229,9 +229,9 @@ The delay pattern also creates an irreducible startup cost: the vocoder needs at
 
 ## Benchmark Results
 
-We benchmarked both Higgs and MOSS-TTS-Local under a controlled protocol to quantify the speedup from our optimization roadmap (#478 Higgs / #637 MOSS). Each model is tested in two builds: **vanilla** (all switchable optimizations off — AR CUDA graph, vocoder codec graph, frame-sampler compile, async decode) vs **perf** (all optimizations on, `origin/main` HEAD defaults).
+We benchmarked both Higgs and MOSS-TTS-Local to quantify the speedup from our optimizations. Each model is tested in two builds: **vanilla** (all optimizations off) vs **perf** (all optimizations on).
 
-**Environment:** 1× H100 80GB, colocate single-GPU. Seed-TTS-Eval EN full set (N=1088), `--generate-only` (no WER), `--ref-format references`. Each data point is the mean of 3 runs. Code: `origin/main` HEAD.
+**Environment:** 1× H100 80GB, colocate single-GPU. Seed-TTS-Eval EN full set (N=1088). Each data point is the mean of 3 runs.
 
 ### Higgs TTS — Streaming (vanilla vs perf)
 
@@ -253,8 +253,6 @@ Optimizations deliver a stable **~2.1–2.5×** throughput gain across all concu
 | 8  | 4.426 | 10.077 | **2.28×** | 0.423 / 0.191 | 1.771 / 0.793 |
 | 16 | 8.156 | 15.174 | **1.86×** | 0.464 / 0.245 | 1.937 / 1.028 |
 
-Non-streaming tracks streaming closely (perf c=16: 14.63 vs 15.17 qps) — streaming adds almost no throughput overhead for Higgs, in contrast to MOSS where the gap is significant.
-
 ### MOSS-TTS-Local-v1.5 — Streaming (vanilla vs perf)
 
 | Concurrency | qps vanilla | qps perf | **Speedup** | RTF van / perf | Latency mean (s) van / perf | TTFP (ms) van / perf |
@@ -274,8 +272,6 @@ MOSS streaming throughput plateaus at ~2.6 qps from c=4 onward. Improving high-c
 | 4  | 1.816 | 4.870 | **2.68×** | 0.504 / 0.192 | 2.200 / 0.821 |
 | 8  | 3.017 | 6.111 | **2.03×** | 0.606 / 0.310 | 2.645 / 1.306 |
 | 16 | 4.668 | 6.144 | **1.32×** | 0.781 / 0.623 | 3.406 / 2.593 |
-
-Non-streaming shows healthier gains: **~3× at low concurrency**, narrowing to 1.32× at c=16 (vanilla's batching amortizes eager kernel-launch overhead at high concurrency). Notably, MOSS perf non-streaming peaks at 6.1 qps — well above streaming's 2.6 qps plateau.
 
 ### Summary
 
