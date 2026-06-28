@@ -187,7 +187,7 @@ On MOSS, the heavier ~1B encoder makes batching more attractive in theory — th
 
 First, the throughput gain was illusory. An initial 23% improvement turned out to be confounded with a cache capacity increase (256 → 1024 entries) in the same commit. After properly controlling variables, batching alone actually hurt throughput by 0.8–4.4%. The reason: to batch audio of different lengths, we must bucket references into length groups and wait for enough samples to fill each bucket. In practice, concurrent requests rarely land in the same bucket, so most "batches" are size 1 or 2 with all the scheduling overhead and none of the throughput benefit.
 
-Second, batched encoding produces different discrete tokens than single-item encoding. Concretely, `encode(audio_A)` and `encode([audio_A, audio_B])[0]` return different codec tokens for the same audio — about 5.8% of tokens flip. Logically this should not happen, but the root cause is that changing the batch size changes the M dimension of the underlying BF16 GEMM, which causes cuBLAS to select a different kernel with a different floating-point accumulation order. The resulting sub-ULP drift is normally invisible, but RVQ's hard quantization immediately follows the encoder: for frames near a codebook boundary, a one-bit perturbation is enough to snap to a different codeword, flipping the discrete token. This makes batched encoder caching unsafe and introduces a new source of train-serving skew unique to neural (as opposed to symbolic) tokenizers. For a detailed analysis, see [The Root Cause of RL Training-Serving Skew is Pervasive Across Inference Systems](moss-tts-local-batch-encoder-skew.md).
+Second, batched encoding produces different discrete tokens than single-item encoding. Concretely, `encode(audio_A)` and `encode([audio_A, audio_B])[0]` return different codec tokens for the same audio — about 5.8% of tokens flip. Logically this should not happen, but the root cause is that changing the batch size changes the M dimension of the underlying BF16 GEMM, which causes cuBLAS to select a different kernel with a different floating-point accumulation order. The resulting sub-ULP drift is normally invisible, but RVQ's hard quantization immediately follows the encoder: for frames near a codebook boundary, a one-bit perturbation is enough to snap to a different codeword, flipping the discrete token. This makes caching batched encoder outputs unsafe and introduces a new source of train-serving skew unique to neural (as opposed to symbolic) tokenizers. For a detailed analysis, see [The Root Cause of RL Training-Serving Skew is Pervasive Across Inference Systems](moss-tts-local-batch-encoder-skew.md).
 
 
 ### CUDA Graph
@@ -413,8 +413,8 @@ Results are in `<output-dir>/speed_results.json` under `summary`: `throughput_qp
 ### Summary
 
 - **Higgs (stream & non-stream):** Stable **~1.9–2.5×** speedup in both modes. Stream ≈ non-stream throughput — the cleanest win across all four quadrants.
-- **MOSS non-streaming:** **~3× at low concurrency**, narrowing to ~1.3× at high concurrency.
-- **MOSS streaming:** **~2.8× at low concurrency**, with throughput plateauing at higher concurrency. Improving streaming scalability is on the roadmap.
+- **MOSS non-streaming:** **~2.7–3.4×** speedup, with throughput scaling to 10.9 qps at c=16.
+- **MOSS streaming:** **~2.6–3.4×** speedup, scaling to 6.5 qps at c=16. Streaming throughput still lags non-streaming at high concurrency due to a scaling bottleneck in the streaming vocoder path — narrowing this gap is an active area of work.
 
 ## Conclusion
 
